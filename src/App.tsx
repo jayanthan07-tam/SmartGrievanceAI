@@ -13,8 +13,10 @@ import AboutPage from './pages/AboutPage';
 import HelpPage from './pages/HelpPage';
 
 export default function App() {
+  const basename = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <AuthProvider>
         <div className="min-h-screen flex flex-col bg-white">
           <Navbar />
