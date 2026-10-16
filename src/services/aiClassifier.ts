@@ -11,27 +11,16 @@ import type { Priority, Language, AIAnalysis } from '../types';
 import { DEPARTMENTS } from '../data/departments';
 import { generateId } from '../data/mockDb';
 
-const ROMANIZED_TELUGU = /\b(nelluru|maa|meeru|mana|illu|neeru|road|water|ledu|undi|chesaru|cheyandi|kavali|problema|thaggarati|tappu|vastundi|vastaro)\b/i;
+
 
 export function detectLanguage(text: string): { language: Language; name: string; confidence: number } {
-  const teluguChars = (text.match(/[\u0C00-\u0C7F]/g) || []).length;
-  const hindiChars = (text.match(/[\u0900-\u097F]/g) || []).length;
-  const tamilChars = (text.match(/[\u0B80-\u0BFF]/g) || []).length;
-  const totalChars = text.length;
-
-  if (teluguChars > 5 || (teluguChars / totalChars) > 0.15) {
-    return { language: 'te', name: 'Telugu', confidence: Math.min(98, 75 + (teluguChars / totalChars) * 100) };
+  const safeText = text || '';
+  const tamilChars = (safeText.match(/[\u0B80-\u0BFF]/g) || []).length;
+  const letters = (safeText.match(/[\p{L}]/gu) || []).length;
+  if (tamilChars > 0 && tamilChars / Math.max(letters, 1) >= 0.1) {
+    return { language: 'ta', name: 'Tamil', confidence: Math.min(99, 80 + (tamilChars / Math.max(letters, 1)) * 100) };
   }
-  if (hindiChars > 5 || (hindiChars / totalChars) > 0.15) {
-    return { language: 'hi', name: 'Hindi', confidence: Math.min(98, 75 + (hindiChars / totalChars) * 100) };
-  }
-  if (tamilChars > 5 || (tamilChars / totalChars) > 0.15) {
-    return { language: 'ta', name: 'Tamil', confidence: Math.min(98, 75 + (tamilChars / totalChars) * 100) };
-  }
-  if (ROMANIZED_TELUGU.test(text)) {
-    return { language: 'te', name: 'Telugu (Romanized)', confidence: 72 };
-  }
-  return { language: 'en', name: 'English', confidence: 95 };
+  return { language: 'en', name: 'English', confidence: letters > 0 ? 95 : 0 };
 }
 
 // ─── Classification Rules ─────────────────────────────────────────────────────
@@ -326,10 +315,7 @@ export function classifyComplaint(
     }
 
     // Language-specific keywords
-    const langKws =
-      langResult.language === 'te' ? rule.teluguKeywords :
-      langResult.language === 'hi' ? rule.hindiKeywords :
-      langResult.language === 'ta' ? rule.tamilKeywords : undefined;
+    const langKws = langResult.language === 'ta' ? rule.tamilKeywords : undefined;
 
     if (langKws) {
       for (const kw of langKws) {

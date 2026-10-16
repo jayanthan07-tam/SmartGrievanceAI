@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import { complaintService } from '../../services/complaintService';
 import { DEPARTMENTS } from '../../data/departments';
 import { PriorityBadge, StatusBadge } from '../../components/ui';
@@ -9,6 +10,7 @@ import type { ComplaintStatus, Priority } from '../../types';
 
 export default function CitizenDashboard() {
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   // If user is not logged in, demo defaults to citizen-1
@@ -50,7 +52,6 @@ export default function CitizenDashboard() {
 
   const handleMarkNotification = (notifId: string) => {
     complaintService.markNotificationRead(notifId);
-    // force re-render
     setActiveTab(t => t);
   };
 
@@ -70,15 +71,15 @@ export default function CitizenDashboard() {
                     {citizenName}
                   </h1>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                    Citizen Account
+                    {t('Citizen Account')}
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-3">
                   <span>✉️ {citizenEmail}</span>
                   <span>•</span>
-                  <span>Preferred Dialect: Telugu / English</span>
+                  <span>{t('Preferred Dialect: Tamil / English')}</span>
                   <span>•</span>
-                  <span className="text-emerald-600 font-medium">✓ Verified Phone</span>
+                  <span className="text-emerald-600 font-medium">✓ {t('Verified Phone')}</span>
                 </p>
               </div>
             </div>
@@ -89,13 +90,13 @@ export default function CitizenDashboard() {
                 to="/register"
                 className="px-4 py-2.5 rounded-xl bg-[#1D4ED8] text-white text-xs font-bold hover:bg-blue-800 transition-all shadow-sm flex items-center gap-1.5"
               >
-                <span>📝 Register Grievance</span>
+                <span>📝 {t('Register Grievance')}</span>
               </Link>
               <Link
                 to="/track"
                 className="px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-50 transition-all shadow-2xs"
               >
-                🔍 Track Any ID
+                🔍 {t('Track Any ID')}
               </Link>
               <button
                 type="button"
@@ -104,9 +105,9 @@ export default function CitizenDashboard() {
                   navigate('/');
                 }}
                 className="px-3.5 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-semibold transition-all"
-                title="Sign out of demo"
+                title={t('Sign out')}
               >
-                Sign Out
+                {t('Sign out')}
               </button>
             </div>
           </div>
@@ -116,43 +117,43 @@ export default function CitizenDashboard() {
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-amber-900">
           <div className="flex items-center gap-2">
             <span>⚗️</span>
-            <span><strong>Citizen Workspace (Demo):</strong> Displaying sample grievances filed under this test citizen account. Submissions update the local store in real time.</span>
+            <span><strong>{t('Citizen Workspace (Demo):')}</strong> {t('Displaying sample grievances filed under this test citizen account. Submissions update the local store in real time.')}</span>
           </div>
           <span className="font-mono text-[11px] bg-amber-100 px-2 py-0.5 rounded text-amber-800 font-semibold shrink-0">
-            LOCAL SANDBOX
+            {t('LOCAL SANDBOX')}
           </span>
         </div>
 
         {/* Overview Metric Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Filed</span>
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">{t('Total Filed')}</span>
             <p className="text-2xl font-extrabold text-slate-900 mt-1">{stats.total}</p>
-            <span className="text-[11px] text-slate-500 mt-0.5 block">Lifetime complaints</span>
+            <span className="text-[11px] text-slate-500 mt-0.5 block">{t('Lifetime complaints')}</span>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="text-[11px] font-bold text-blue-500 uppercase tracking-wider">In Progress</span>
+            <span className="text-[11px] font-bold text-blue-500 uppercase tracking-wider">{t('In Progress')}</span>
             <p className="text-2xl font-extrabold text-blue-700 mt-1">{stats.inProgress}</p>
-            <span className="text-[11px] text-blue-600 mt-0.5 block">Active field teams</span>
+            <span className="text-[11px] text-blue-600 mt-0.5 block">{t('Active field teams')}</span>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="text-[11px] font-bold text-amber-500 uppercase tracking-wider">Pending Review</span>
+            <span className="text-[11px] font-bold text-amber-500 uppercase tracking-wider">{t('Pending Review')}</span>
             <p className="text-2xl font-extrabold text-amber-700 mt-1">{stats.pending}</p>
-            <span className="text-[11px] text-amber-600 mt-0.5 block">AI triage audit</span>
+            <span className="text-[11px] text-amber-600 mt-0.5 block">{t('AI triage audit')}</span>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-2xs">
-            <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider">Resolved</span>
+            <span className="text-[11px] font-bold text-emerald-500 uppercase tracking-wider">{t('Resolved')}</span>
             <p className="text-2xl font-extrabold text-emerald-700 mt-1">{stats.resolved}</p>
-            <span className="text-[11px] text-emerald-600 mt-0.5 block">Closed with proof</span>
+            <span className="text-[11px] text-emerald-600 mt-0.5 block">{t('Closed with proof')}</span>
           </div>
 
           <div className="bg-white p-5 rounded-xl border border-rose-200 shadow-2xs bg-rose-50/20 col-span-2 lg:col-span-1">
-            <span className="text-[11px] font-bold text-rose-500 uppercase tracking-wider">Critical Cases</span>
+            <span className="text-[11px] font-bold text-rose-500 uppercase tracking-wider">{t('Critical Cases')}</span>
             <p className="text-2xl font-extrabold text-rose-700 mt-1">{stats.critical}</p>
-            <span className="text-[11px] text-rose-600 mt-0.5 block">Emergency priority</span>
+            <span className="text-[11px] text-rose-600 mt-0.5 block">{t('Emergency priority')}</span>
           </div>
         </div>
 
@@ -168,7 +169,7 @@ export default function CitizenDashboard() {
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <span>📋 My Grievances</span>
+              <span>📋 {t('My Grievances')}</span>
               <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono">
                 {allComplaints.length}
               </span>
@@ -182,10 +183,10 @@ export default function CitizenDashboard() {
                   : 'border-transparent text-slate-500 hover:text-slate-800'
               }`}
             >
-              <span>🔔 Notifications & Alerts</span>
+              <span>🔔 {t('Notifications & Alerts')}</span>
               {notifications.filter(n => !n.read_status).length > 0 && (
                 <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono font-bold animate-pulse">
-                  {notifications.filter(n => !n.read_status).length} new
+                  {notifications.filter(n => !n.read_status).length} {t('new')}
                 </span>
               )}
             </button>
@@ -202,7 +203,7 @@ export default function CitizenDashboard() {
                     type="text"
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
-                    placeholder="Search by ID, keyword, or mandal..."
+                    placeholder={t('Search by ID, keyword, or mandal...')}
                     className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8]"
                   />
                 </div>
@@ -213,12 +214,12 @@ export default function CitizenDashboard() {
                     onChange={e => setStatusFilter(e.target.value)}
                     className="px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-700 bg-white"
                   >
-                    <option value="all">All Statuses</option>
-                    <option value="in_progress">In Progress</option>
-                    <option value="assigned">Assigned</option>
-                    <option value="pending_review">Pending Review</option>
-                    <option value="resolved">Resolved</option>
-                    <option value="reopened">Reopened</option>
+                    <option value="all">{t('All Statuses')}</option>
+                    <option value="in_progress">{t('In Progress')}</option>
+                    <option value="assigned">{t('Assigned')}</option>
+                    <option value="pending_review">{t('Pending Review')}</option>
+                    <option value="resolved">{t('Resolved')}</option>
+                    <option value="reopened">{t('Reopened')}</option>
                   </select>
 
                   <select
@@ -226,11 +227,11 @@ export default function CitizenDashboard() {
                     onChange={e => setPriorityFilter(e.target.value)}
                     className="px-3 py-2 rounded-lg border border-slate-300 text-xs text-slate-700 bg-white"
                   >
-                    <option value="all">All Priorities</option>
-                    <option value="critical">Critical</option>
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
+                    <option value="all">{t('All Priorities')}</option>
+                    <option value="critical">{t('Critical')}</option>
+                    <option value="high">{t('High')}</option>
+                    <option value="medium">{t('Medium')}</option>
+                    <option value="low">{t('Low')}</option>
                   </select>
                 </div>
               </div>
@@ -239,8 +240,8 @@ export default function CitizenDashboard() {
               {filteredComplaints.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
                   <p className="text-3xl mb-2">📂</p>
-                  <p className="text-sm font-semibold text-slate-700">No grievances matching selected criteria</p>
-                  <p className="text-xs text-slate-500 mt-1">Try clearing filters or register a new complaint.</p>
+                  <p className="text-sm font-semibold text-slate-700">{t('No complaints found')}</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('Try adjusting your filters or file a new grievance.')}</p>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
@@ -259,20 +260,20 @@ export default function CitizenDashboard() {
                             <PriorityBadge priority={comp.confirmed_priority as Priority} />
                             <StatusBadge status={comp.status as ComplaintStatus} />
                             <span className="text-[11px] text-slate-400">
-                              Filed {timeAgo(comp.created_at)}
+                              {t('Filed:')} {timeAgo(comp.created_at)}
                             </span>
                           </div>
 
                           <h3 className="text-sm font-bold text-slate-900 truncate">
-                            {comp.title}
+                            {t(comp.title)}
                           </h3>
 
                           <p className="text-xs text-slate-500 flex flex-wrap items-center gap-2">
-                            <span>🏛️ {dept?.department_name || 'Department'}</span>
+                            <span>🏛️ {t(dept?.department_name || 'Department')}</span>
                             <span>•</span>
-                            <span>📍 {comp.mandal} Mandal ({comp.village})</span>
+                            <span>📍 {comp.mandal} ({comp.village})</span>
                             <span>•</span>
-                            <span>Category: {comp.category}</span>
+                            <span>{t('Category')}: {t(comp.category)}</span>
                           </p>
                         </div>
 
@@ -281,7 +282,7 @@ export default function CitizenDashboard() {
                             to={`/track?id=${comp.grievance_number}`}
                             className="px-4 py-2 rounded-lg bg-blue-50 hover:bg-blue-100 text-[#1D4ED8] text-xs font-bold transition-colors flex items-center gap-1.5"
                           >
-                            <span>🔍 Track Timeline</span>
+                            <span>🔍 {t('Track Complaint')}</span>
                           </Link>
                         </div>
                       </div>
@@ -298,8 +299,8 @@ export default function CitizenDashboard() {
               {notifications.length === 0 ? (
                 <div className="py-12 text-center text-slate-400">
                   <p className="text-3xl mb-2">🔔</p>
-                  <p className="text-sm font-semibold text-slate-700">No notifications yet</p>
-                  <p className="text-xs text-slate-500 mt-1">You will receive automated updates when officers update your cases.</p>
+                  <p className="text-sm font-semibold text-slate-700">{t('No notifications yet', 'No notifications yet')}</p>
+                  <p className="text-xs text-slate-500 mt-1">{t('You will receive automated updates when officers update your cases.', 'You will receive automated updates when officers update your cases.')}</p>
                 </div>
               ) : (
                 notifications.map(notif => (
@@ -317,7 +318,7 @@ export default function CitizenDashboard() {
                       </span>
                       <div>
                         <p className={`text-xs leading-relaxed ${notif.read_status ? 'text-slate-700' : 'text-slate-900 font-semibold'}`}>
-                          {notif.message}
+                          {t(notif.message)}
                         </p>
                         <span className="text-[11px] text-slate-400 mt-1 block font-mono">
                           {formatDate(notif.created_at, true)}
@@ -330,7 +331,7 @@ export default function CitizenDashboard() {
                         onClick={() => handleMarkNotification(notif.id)}
                         className="text-[11px] text-blue-600 hover:underline shrink-0 font-medium"
                       >
-                        Mark as read
+                        {t('Mark as Read')}
                       </button>
                     )}
                   </div>

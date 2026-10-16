@@ -16,7 +16,7 @@ export type ComplaintStatus =
   | 'resolved'
   | 'reopened';
 
-export type Language = 'en' | 'te' | 'ta' | 'hi';
+export type Language = 'en' | 'ta';
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 

@@ -69,26 +69,39 @@ export const authService = {
     password: string;
     preferred_language: string;
   }): { user: User | null; error: string | null } {
-    const users = getAll<User>(DB_KEYS.USERS);
-    if (users.find(u => u.email.toLowerCase() === data.email.toLowerCase())) {
-      return { user: null, error: 'An account with this email address already exists.' };
+    try {
+      const cleanEmail = (data.email || '').trim().toLowerCase();
+      const cleanName = (data.name || '').trim();
+      const cleanPhone = (data.phone || '').trim();
+
+      if (!cleanEmail || !data.password) {
+        return { user: null, error: 'Email and password are required.' };
+      }
+
+      const users = getAll<User>(DB_KEYS.USERS);
+      if (users.find(u => u.email.toLowerCase() === cleanEmail)) {
+        return { user: null, error: 'An account with this email address already exists.' };
+      }
+
+      const newUser: User = {
+        id: `u-citizen-${Date.now()}`,
+        name: cleanName || 'Citizen User',
+        email: cleanEmail,
+        phone: cleanPhone,
+        password_hash: data.password,
+        role: 'citizen',
+        preferred_language: (data.preferred_language as any) || 'en',
+        created_at: new Date().toISOString(),
+        is_active: true,
+      };
+
+      users.push(newUser);
+      localStorage.setItem(DB_KEYS.USERS, JSON.stringify(users));
+      return { user: newUser, error: null };
+    } catch (err) {
+      console.error('[SmartGrievance AI] Registration storage error:', err);
+      return { user: null, error: 'Registration failed due to a storage error. Please try again.' };
     }
-
-    const newUser: User = {
-      id: `u-citizen-${Date.now()}`,
-      name: data.name,
-      email: data.email,
-      phone: data.phone,
-      password_hash: data.password,
-      role: 'citizen',
-      preferred_language: (data.preferred_language as any) || 'en',
-      created_at: new Date().toISOString(),
-      is_active: true,
-    };
-
-    users.push(newUser);
-    localStorage.setItem(DB_KEYS.USERS, JSON.stringify(users));
-    return { user: newUser, error: null };
   },
 
   isAuthenticated(): boolean {

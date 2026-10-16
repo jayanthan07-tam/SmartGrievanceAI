@@ -5,9 +5,11 @@ import { DEPARTMENTS } from '../data/departments';
 import { AP_DISTRICTS } from '../data/districts';
 import { PriorityBadge, StatusBadge } from '../components/ui';
 import { formatDate, timeAgo } from '../lib/utils';
+import { useLanguage } from '../contexts/LanguageContext';
 import type { Complaint, AIAnalysis, ComplaintHistory } from '../types';
 
 export default function TrackComplaintPage() {
+  const { t } = useLanguage();
   const [searchParams, setSearchParams] = useSearchParams();
   const queryId = searchParams.get('id') || '';
 
@@ -77,14 +79,14 @@ export default function TrackComplaintPage() {
     }
     setReopenModal(false);
     setReopenReason('');
-    alert('Grievance has been reopened. A supervisory officer will audit the case.');
+    alert(t('Grievance has been reopened. A supervisory officer will audit the case.', 'Grievance has been reopened. A supervisory officer will audit the case.'));
   };
 
   const handleFeedbackSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setFeedbackSubmitted(true);
     setTimeout(() => {
-      alert('Thank you! Your satisfaction feedback has been recorded on the department scorecard.');
+      alert(t('Thank you! Your satisfaction feedback has been recorded on the departmental audit log.'));
     }, 400);
   };
 
@@ -93,10 +95,10 @@ export default function TrackComplaintPage() {
 
   // Sample quick test IDs
   const SAMPLE_IDS = [
-    { id: 'SGAI-2026-000001', label: '⚡ Live Wire (Critical/In Progress)' },
-    { id: 'SGAI-2026-000002', label: '💧 Water Contamination (High/Assigned)' },
-    { id: 'SGAI-2026-000003', label: '💡 Street Light (Medium/Pending)' },
-    { id: 'SGAI-2026-000004', label: '👴 Pension Disruption (Resolved)' },
+    { id: 'SGAI-2026-000001', label: t('⚡ Live Wire (Critical/In Progress)') },
+    { id: 'SGAI-2026-000002', label: t('💧 Water Contamination (High/Assigned)') },
+    { id: 'SGAI-2026-000003', label: t('💡 Street Light (Medium/Pending)') },
+    { id: 'SGAI-2026-000004', label: t('👴 Pension Disruption (Resolved)') },
   ];
 
   return (
@@ -105,24 +107,24 @@ export default function TrackComplaintPage() {
         {/* Breadcrumb & Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-2">
-            <Link to="/" className="hover:text-blue-600">Home</Link>
+            <Link to="/" className="hover:text-blue-600">{t('Home')}</Link>
             <span>/</span>
-            <span className="text-slate-800">Track Grievance</span>
+            <span className="text-slate-800">{t('Track Grievance')}</span>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-                Grievance Tracking Dossier
+                {t('Grievance Tracking Dossier')}
               </h1>
               <p className="text-sm text-slate-600 mt-1">
-                Real-time transparency on department assignment, field inspection notes, and SLA resolution milestones.
+                {t('Real-time transparency on department assignment, field inspection notes, and SLA resolution milestones.')}
               </p>
             </div>
             <Link
               to="/register"
               className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1D4ED8] text-white text-xs font-semibold hover:bg-blue-800 transition-colors self-start sm:self-auto shadow-sm"
             >
-              <span>+</span> File New Grievance
+              <span>+</span> {t('File New Grievance')}
             </Link>
           </div>
         </div>
@@ -136,7 +138,7 @@ export default function TrackComplaintPage() {
                 type="text"
                 value={inputVal}
                 onChange={e => setInputVal(e.target.value)}
-                placeholder="Enter SGAI Tracking ID (e.g. SGAI-2026-000001)"
+                placeholder={t('Enter SGAI Tracking ID (e.g. SGAI-2026-000001)')}
                 className="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-300 font-mono text-sm uppercase focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8]"
               />
             </div>
@@ -144,13 +146,13 @@ export default function TrackComplaintPage() {
               type="submit"
               className="px-6 py-3 rounded-xl bg-[#1D4ED8] hover:bg-blue-800 text-white font-semibold text-sm transition-all shadow-sm flex items-center justify-center gap-2 shrink-0"
             >
-              Inspect Status
+              {t('Inspect Status')}
             </button>
           </form>
 
           {/* Quick-click samples */}
           <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Quick Demo Cases:</span>
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('Quick Demo Cases:')}</span>
             {SAMPLE_IDS.map(s => (
               <button
                 key={s.id}
@@ -172,16 +174,16 @@ export default function TrackComplaintPage() {
         {notFound && (
           <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
             <div className="text-4xl mb-3">🔍</div>
-            <h3 className="text-lg font-bold text-slate-900">No Record Found</h3>
+            <h3 className="text-lg font-bold text-slate-900">{t('No Record Found')}</h3>
             <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-              We could not locate any grievance registered with tracking ID &quot;{currentId}&quot;. Please verify the digits or check your SMS confirmation.
+              {t('We could not locate any grievance registered with tracking ID')} &quot;{currentId}&quot;.
             </p>
             <div className="mt-6 flex justify-center gap-3">
               <button
                 onClick={() => handleSelectSample('SGAI-2026-000001')}
                 className="px-4 py-2 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100"
               >
-                Load Sample Critical Case (SGAI-2026-000001)
+                {t('Load Sample Critical Case (SGAI-2026-000001)')}
               </button>
             </div>
           </div>
@@ -194,10 +196,10 @@ export default function TrackComplaintPage() {
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-amber-900">
               <div className="flex items-center gap-2">
                 <span>⚗️</span>
-                <span><strong>Simulated Record:</strong> All tracking timelines and officer remarks are fictional data generated for demonstration purposes.</span>
+                <span><strong>{t('Simulated Record:')}</strong> {t('All tracking timelines and officer remarks are fictional data generated for demonstration purposes.')}</span>
               </div>
               <span className="font-mono text-[11px] bg-amber-100 px-2 py-0.5 rounded text-amber-800 shrink-0">
-                SANDBOX DOSSIER
+                {t('SANDBOX DOSSIER')}
               </span>
             </div>
 
@@ -213,12 +215,12 @@ export default function TrackComplaintPage() {
                     <StatusBadge status={complaint.status} />
                   </div>
                   <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 leading-snug">
-                    {complaint.title}
+                    {t(complaint.title)}
                   </h2>
                   <p className="text-xs text-slate-500 mt-1 flex items-center gap-2">
-                    <span>Filed: {formatDate(complaint.created_at, true)}</span>
+                    <span>{t('Filed:')} {formatDate(complaint.created_at, true)}</span>
                     <span>•</span>
-                    <span>Last Updated: {timeAgo(complaint.updated_at)}</span>
+                    <span>{t('Last Updated:')} {timeAgo(complaint.updated_at)}</span>
                   </p>
                 </div>
 
@@ -227,14 +229,14 @@ export default function TrackComplaintPage() {
                     onClick={() => window.print()}
                     className="px-3.5 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors flex items-center gap-1.5"
                   >
-                    🖨️ Print Dossier
+                    🖨️ {t('Print Dossier')}
                   </button>
                   {complaint.status === 'resolved' && (
                     <button
                       onClick={() => setReopenModal(true)}
                       className="px-3.5 py-2 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 text-xs font-semibold transition-colors"
                     >
-                      🔁 Reopen Case
+                      🔁 {t('Reopen Case')}
                     </button>
                   )}
                 </div>
@@ -243,29 +245,29 @@ export default function TrackComplaintPage() {
               {/* Grid Metadata */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs">
                 <div>
-                  <span className="text-slate-400 font-medium">Assigned Department</span>
-                  <p className="font-bold text-slate-900 mt-0.5">{dept?.department_name || 'General Administration'}</p>
+                  <span className="text-slate-400 font-medium">{t('Assigned Department')}</span>
+                  <p className="font-bold text-slate-900 mt-0.5">{t(dept?.department_name || 'General Administration')}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-medium">Jurisdiction</span>
+                  <span className="text-slate-400 font-medium">{t('Jurisdiction')}</span>
                   <p className="font-bold text-slate-900 mt-0.5">
                     {complaint.mandal} Mandal, {district?.district_name || 'Guntur'}
                   </p>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-medium">Village / Ward</span>
+                  <span className="text-slate-400 font-medium">{t('Village / Ward / Area')}</span>
                   <p className="font-bold text-slate-900 mt-0.5">{complaint.village}</p>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-medium">Citizen Identity</span>
-                  <p className="font-bold text-slate-900 mt-0.5">Masked (Privacy Mode)</p>
+                  <span className="text-slate-400 font-medium">{t('Citizen Identity')}</span>
+                  <p className="font-bold text-slate-900 mt-0.5">{t('Masked (Privacy Mode)')}</p>
                 </div>
               </div>
 
               {/* Citizen Original Statement */}
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Original Citizen Grievance Statement
+                  {t('Original Citizen Grievance Statement')}
                 </h3>
                 <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
                   {complaint.original_description}
@@ -279,34 +281,34 @@ export default function TrackComplaintPage() {
                     <div className="flex items-center gap-2">
                       <span className="text-base">🤖</span>
                       <h4 className="text-xs font-bold text-teal-950 uppercase tracking-wider">
-                        AI Classification & Explainability Matrix
+                        {t('AI Classification & Explainability Matrix')}
                       </h4>
                     </div>
                     <span className="text-[11px] font-mono text-teal-700 bg-white px-2 py-0.5 rounded border border-teal-200">
-                      Confidence {analysis.confidence}% • {analysis.model_version}
+                      {t('Confidence Score')} {analysis.confidence}% • {analysis.model_version}
                     </span>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                     <div className="bg-white p-3 rounded-lg border border-teal-100">
-                      <span className="text-slate-400 font-medium">Detected Language</span>
+                      <span className="text-slate-400 font-medium">{t('Preferred Language')}</span>
                       <p className="font-bold text-slate-800 mt-0.5">{analysis.language_name}</p>
                     </div>
                     <div className="bg-white p-3 rounded-lg border border-teal-100">
-                      <span className="text-slate-400 font-medium">Recommended Category</span>
-                      <p className="font-bold text-slate-800 mt-0.5">{analysis.recommended_category}</p>
+                      <span className="text-slate-400 font-medium">{t('Category')}</span>
+                      <p className="font-bold text-slate-800 mt-0.5">{t(analysis.recommended_category)}</p>
                     </div>
                     <div className="bg-white p-3 rounded-lg border border-teal-100">
-                      <span className="text-slate-400 font-medium">Human-in-the-Loop Audit</span>
+                      <span className="text-slate-400 font-medium">{t('Human Oversight')}</span>
                       <p className="font-bold text-emerald-700 mt-0.5">
-                        {analysis.review_required ? 'Audited by Officer' : 'Passed Algorithmic Threshold'}
+                        {analysis.review_required ? t('Audited by Officer') : t('Passed Algorithmic Threshold')}
                       </p>
                     </div>
                   </div>
 
                   <div className="p-3 bg-white rounded-lg border border-teal-100 text-xs text-slate-700 leading-relaxed">
-                    <strong className="text-slate-900">Algorithmic Reasoning: </strong>
-                    {analysis.explanation}
+                    <strong className="text-slate-900">{t('Algorithmic Reasoning: ')}</strong>
+                    {t(analysis.explanation)}
                   </div>
                 </div>
               )}
@@ -317,14 +319,14 @@ export default function TrackComplaintPage() {
               <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <span>⏱️</span> Verifiable Redressal Milestone Timeline
+                    <span>⏱️</span> {t('Verifiable Redressal Milestone Timeline')}
                   </h3>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Chronological audit log of officer actions, dispatch updates, and status transitions.
+                    {t('Chronological audit log of officer actions, dispatch updates, and status transitions.')}
                   </p>
                 </div>
                 <span className="text-xs font-semibold px-2.5 py-1 bg-slate-100 text-slate-700 rounded-md">
-                  {history.length} Event{history.length !== 1 ? 's' : ''}
+                  {history.length} {history.length !== 1 ? t('Events') : t('Event')}
                 </span>
               </div>
 
@@ -344,7 +346,7 @@ export default function TrackComplaintPage() {
                     <div className="bg-slate-50 rounded-xl p-4 border border-slate-200/80 space-y-2">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-900">{event.action}</span>
+                          <span className="text-xs font-bold text-slate-900">{t(event.action)}</span>
                           <StatusBadge status={event.new_status} />
                         </div>
                         <span className="text-[11px] font-mono text-slate-400">
@@ -355,13 +357,13 @@ export default function TrackComplaintPage() {
                       <div className="text-xs text-slate-600 flex items-center gap-2">
                         <span className="font-semibold text-slate-800">{event.actor_name}</span>
                         <span>•</span>
-                        <span className="capitalize text-slate-500">{event.actor_role.replace(/_/g, ' ')}</span>
+                        <span className="capitalize text-slate-500">{t(event.actor_role.replace(/_/g, ' '))}</span>
                       </div>
 
                       {event.remarks && (
                         <div className="mt-2 p-2.5 rounded-lg bg-white border border-slate-200/70 text-xs text-slate-700 leading-relaxed">
-                          <strong className="text-slate-800">Officer Remarks: </strong>
-                          {event.remarks}
+                          <strong className="text-slate-800">{t('Officer Remarks')}: </strong>
+                          {t(event.remarks)}
                         </div>
                       )}
                     </div>
@@ -374,15 +376,15 @@ export default function TrackComplaintPage() {
             {complaint.status === 'resolved' && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-4">
                 <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                  <span>⭐</span> Citizen Satisfaction Feedback
+                  <span>⭐</span> {t('Citizen Satisfaction Feedback')}
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Rate the quality and promptness of the department&apos;s redressal. Ratings directly impact the department SLA compliance scorecard.
+                  {t('Rate the quality and promptness of the department\'s redressal. Ratings directly impact the department SLA compliance scorecard.')}
                 </p>
 
                 {feedbackSubmitted ? (
                   <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-                    <span>✓</span> Thank you! Your satisfaction feedback has been recorded on the departmental audit log.
+                    <span>✓</span> {t('Thank you! Your satisfaction feedback has been recorded on the departmental audit log.')}
                   </div>
                 ) : (
                   <form onSubmit={handleFeedbackSubmit} className="space-y-4">
@@ -400,10 +402,10 @@ export default function TrackComplaintPage() {
                         </button>
                       ))}
                       <span className="text-xs text-slate-500 ml-2 font-medium">
-                        {feedbackRating === 5 && 'Excellent Redressal'}
-                        {feedbackRating === 4 && 'Good Work'}
-                        {feedbackRating === 3 && 'Average'}
-                        {feedbackRating <= 2 && 'Needs Improvement'}
+                        {feedbackRating === 5 && t('Excellent Redressal')}
+                        {feedbackRating === 4 && t('Good Work')}
+                        {feedbackRating === 3 && t('Average')}
+                        {feedbackRating <= 2 && t('Needs Improvement')}
                       </span>
                     </div>
 
@@ -411,7 +413,7 @@ export default function TrackComplaintPage() {
                       rows={2}
                       value={feedbackComment}
                       onChange={e => setFeedbackComment(e.target.value)}
-                      placeholder="Add any comments on field worker behavior, resolution quality, or remaining issues..."
+                      placeholder={t('Add any comments on field worker behavior, resolution quality, or remaining issues...')}
                       className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8] resize-none"
                     />
 
@@ -419,7 +421,7 @@ export default function TrackComplaintPage() {
                       type="submit"
                       className="px-5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs shadow-sm transition-colors"
                     >
-                      Submit Redressal Rating
+                      {t('Submit Redressal Rating')}
                     </button>
                   </form>
                 )}
@@ -433,22 +435,22 @@ export default function TrackComplaintPage() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
             <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
               <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <span>🔁</span> Reopen Grievance
+                <span>🔁</span> {t('Reopen Case')}
               </h3>
               <p className="text-xs text-slate-500 leading-relaxed">
-                If the on-ground resolution is incomplete or inaccurate, you can reopen this ticket within 7 days of closure. A supervisory inspection will be scheduled.
+                {t('If the on-ground resolution is incomplete or inaccurate, you can reopen this ticket within 7 days of closure. A supervisory inspection will be scheduled.')}
               </p>
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 uppercase mb-1">
-                  Reason for Reopening <span className="text-red-500">*</span>
+                  {t('Reason for Reopening')} <span className="text-red-500">*</span>
                 </label>
                 <textarea
                   rows={3}
                   required
                   value={reopenReason}
                   onChange={e => setReopenReason(e.target.value)}
-                  placeholder="Explain why the resolution was unsatisfactory (e.g. wire was only tied up with rope instead of being replaced)..."
+                  placeholder={t('Explain why the resolution was unsatisfactory (e.g. wire was only tied up with rope instead of being replaced)...')}
                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 resize-none"
                 />
               </div>
@@ -459,14 +461,14 @@ export default function TrackComplaintPage() {
                   onClick={() => setReopenModal(false)}
                   className="px-4 py-2 rounded-lg border border-slate-300 text-slate-600 text-xs font-semibold hover:bg-slate-50"
                 >
-                  Cancel
+                  {t('Cancel')}
                 </button>
                 <button
                   type="button"
                   onClick={handleReopen}
                   className="px-5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-sm"
                 >
-                  Confirm Reopening
+                  {t('Confirm Reopening')}
                 </button>
               </div>
             </div>

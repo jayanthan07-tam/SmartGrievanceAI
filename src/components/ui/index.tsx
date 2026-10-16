@@ -404,8 +404,10 @@ export function Modal({
 
 import { getPriorityConfig, getStatusConfig } from '../../lib/utils';
 import type { Priority, ComplaintStatus } from '../../types';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export function PriorityBadge({ priority }: { priority: Priority }) {
+  const { t } = useLanguage();
   const config = getPriorityConfig(priority);
   return (
     <span className={cn(
@@ -413,12 +415,13 @@ export function PriorityBadge({ priority }: { priority: Priority }) {
       config.badge
     )}>
       <span className={cn('w-1.5 h-1.5 rounded-full', config.dot)} />
-      {config.label}
+      {t(config.label)}
     </span>
   );
 }
 
 export function StatusBadge({ status }: { status: ComplaintStatus }) {
+  const { t } = useLanguage();
   const config = getStatusConfig(status);
   return (
     <span className={cn(
@@ -426,7 +429,7 @@ export function StatusBadge({ status }: { status: ComplaintStatus }) {
       config.badge
     )}>
       <span>{config.icon}</span>
-      {config.label}
+      {t(config.label)}
     </span>
   );
 }
@@ -434,12 +437,13 @@ export function StatusBadge({ status }: { status: ComplaintStatus }) {
 // ─── Demo Mode Banner ─────────────────────────────────────────────────────────
 
 export function DemoBanner() {
+  const { t } = useLanguage();
   return (
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <p className="text-xs text-amber-800 font-medium flex items-center gap-2">
           <span>⚗️</span>
-          <span><strong>Demo Mode:</strong> Using simulated AI classification and fictional data. No real credentials required.</span>
+          <span><strong>{t('Demo Mode:')}</strong> {t('Using simulated AI classification and fictional data. No real credentials required.')}</span>
         </p>
         <span className="text-xs font-mono text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
           SANDBOX v2.4.9

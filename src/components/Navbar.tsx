@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { complaintService } from '../services/complaintService';
+import { useLanguage } from '../contexts/LanguageContext';
 
 const NAV_LINKS = [
   { label: 'Home', path: '/' },
@@ -28,15 +29,16 @@ const DASHBOARD_PATHS: Record<string, string> = {
 
 export default function Navbar() {
   const { user, isAuthenticated, logout } = useAuth();
+  const { language, setLanguage, t } = useLanguage();
   const navigate = useNavigate();
   const location = useLocation();
   const [loginOpen, setLoginOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const [selectedLang, setSelectedLang] = useState('en');
   const loginRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
 
   // Unread notifications count
   const unreadCount = isAuthenticated && user
@@ -48,6 +50,7 @@ export default function Navbar() {
     function handleClick(e: MouseEvent) {
       if (loginRef.current && !loginRef.current.contains(e.target as Node)) setLoginOpen(false);
       if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false);
+      if (langRef.current && !langRef.current.contains(e.target as Node)) setLangOpen(false);
     }
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
@@ -60,10 +63,8 @@ export default function Navbar() {
   };
 
   const LANGUAGES = [
-    { code: 'en', label: 'English' },
-    { code: 'te', label: 'తెలుగు (Telugu)' },
-    { code: 'hi', label: 'हिंदी (Hindi)' },
-    { code: 'ta', label: 'தமிழ் (Tamil)' },
+    { code: 'en' as const, label: 'English', native: 'English' },
+    { code: 'ta' as const, label: 'தமிழ் (Tamil)', native: 'தமிழ்' },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -82,11 +83,11 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-6 py-1.5 flex items-center justify-between text-xs text-gray-500">
           <span className="flex items-center gap-1.5">
             <span>⚗️</span>
-            Hackathon Demo | Fictional AI data for evaluation purposes only
+            {t('Hackathon Demo | Fictional AI data for evaluation purposes only')}
           </span>
           <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1">📞 24x7 Helpline: 1800-000-DEMO</span>
-            <span className="font-mono bg-gray-200 px-2 py-0.5 rounded text-gray-600">AI Engine v2.4</span>
+            <span className="flex items-center gap-1">📞 {t('24x7 Helpline: 1800-000-DEMO')}</span>
+            <span className="font-mono bg-gray-200 px-2 py-0.5 rounded text-gray-600">{t('AI Engine v2.4')}</span>
           </div>
         </div>
       </div>
@@ -102,7 +103,7 @@ export default function Navbar() {
               </div>
               <div className="flex flex-col">
                 <span className="text-sm font-bold text-[#0037b0] leading-tight tracking-tight">SmartGrievance AI</span>
-                <span className="text-xs text-gray-400 hidden sm:block">Your Voice, Our Priority</span>
+                <span className="text-xs text-gray-400 hidden sm:block">{t('Your Voice, Our Priority')}</span>
               </div>
             </Link>
 
@@ -118,7 +119,7 @@ export default function Navbar() {
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
                   }`}
                 >
-                  {link.label}
+                  {t(link.label)}
                 </Link>
               ))}
             </nav>
@@ -126,23 +127,25 @@ export default function Navbar() {
             {/* Right side controls */}
             <div className="flex items-center gap-2 ml-auto">
               {/* Language selector */}
-              <div className="relative hidden sm:block" ref={undefined}>
+              <div className="relative hidden sm:block" ref={langRef}>
                 <button
                   onClick={() => setLangOpen(!langOpen)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs"
+                  aria-label="Change Language"
                 >
-                  🌐 {LANGUAGES.find(l => l.code === selectedLang)?.label.split(' ')[0]}
+                  🌐 {language === 'ta' ? 'தமிழ்' : 'English'}
                   <span className="text-gray-400">▾</span>
                 </button>
                 {langOpen && (
-                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl py-1 w-48 z-50">
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-gray-200 shadow-xl py-1 w-48 z-50 animate-fade-in">
                     {LANGUAGES.map(lang => (
                       <button
                         key={lang.code}
-                        onClick={() => { setSelectedLang(lang.code); setLangOpen(false); }}
-                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors ${selectedLang === lang.code ? 'text-[#0037b0] font-semibold' : 'text-gray-700'}`}
+                        onClick={() => { setLanguage(lang.code); setLangOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-blue-50 transition-colors flex items-center justify-between ${language === lang.code ? 'text-[#0037b0] font-bold bg-blue-50/50' : 'text-gray-700'}`}
                       >
-                        {lang.label}
+                        <span>{lang.label}</span>
+                        {language === lang.code && <span className="text-[#0037b0] text-xs">✓</span>}
                       </button>
                     ))}
                   </div>
@@ -157,12 +160,12 @@ export default function Navbar() {
                     className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0037b0] text-white text-sm font-semibold hover:bg-[#001f6b] transition-colors shadow-sm"
                   >
                     <span>🔑</span>
-                    <span className="hidden sm:inline">Login</span>
+                    <span className="hidden sm:inline">{t('Login')}</span>
                     <span className="text-blue-200">▾</span>
                   </button>
                   {loginOpen && (
                     <div className="absolute right-0 top-full mt-2 bg-white rounded-xl border border-gray-200 shadow-2xl py-2 w-56 z-50 animate-fade-in">
-                      <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Select Portal</p>
+                      <p className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('Select Portal')}</p>
                       {LOGIN_PORTALS.map(portal => (
                         <Link
                           key={portal.path}
@@ -171,7 +174,7 @@ export default function Navbar() {
                           className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                         >
                           <span className="text-xl">{portal.icon}</span>
-                          <span className={`text-sm font-medium ${portal.color}`}>{portal.label}</span>
+                          <span className={`text-sm font-medium ${portal.color}`}>{t(portal.label)}</span>
                         </Link>
                       ))}
                     </div>
@@ -188,7 +191,7 @@ export default function Navbar() {
                     </div>
                     <div className="hidden md:flex flex-col items-start">
                       <span className="text-xs font-semibold text-gray-900 leading-tight">{user?.name.split(' ')[0]}</span>
-                      <span className="text-xs text-gray-400">{roleLabel[user?.role || '']}</span>
+                      <span className="text-xs text-gray-400">{t(roleLabel[user?.role || ''] || user?.role || '')}</span>
                     </div>
                     {unreadCount > 0 && (
                       <span className="relative bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -203,7 +206,7 @@ export default function Navbar() {
                       <div className="px-4 py-3 border-b border-gray-100">
                         <p className="text-sm font-semibold text-gray-900">{user?.name}</p>
                         <p className="text-xs text-gray-400">{user?.email}</p>
-                        <p className="text-xs text-[#0037b0] font-medium mt-0.5">{roleLabel[user?.role || '']}</p>
+                        <p className="text-xs text-[#0037b0] font-medium mt-0.5">{t(roleLabel[user?.role || ''] || user?.role || '')}</p>
                       </div>
                       {user?.role && (
                         <Link
@@ -211,7 +214,7 @@ export default function Navbar() {
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
                         >
-                          <span>📊</span> My Dashboard
+                          <span>📊</span> {t('My Dashboard')}
                         </Link>
                       )}
                       {user?.role === 'citizen' && (
@@ -221,14 +224,14 @@ export default function Navbar() {
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
                           >
-                            <span>📝</span> Register Complaint
+                            <span>📝</span> {t('Register Complaint')}
                           </Link>
                           <Link
                             to="/citizen/complaints"
                             onClick={() => setUserMenuOpen(false)}
                             className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 text-sm text-gray-700 transition-colors"
                           >
-                            <span>📋</span> My Complaints {unreadCount > 0 && <span className="ml-auto bg-red-100 text-red-600 text-xs font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
+                            <span>📋</span> {t('My Complaints')} {unreadCount > 0 && <span className="ml-auto bg-red-100 text-red-600 text-xs font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>}
                           </Link>
                         </>
                       )}
@@ -237,7 +240,7 @@ export default function Navbar() {
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-4 py-3 hover:bg-red-50 text-sm text-red-600 transition-colors"
                       >
-                        <span>🚪</span> Sign Out
+                        <span>🚪</span> {t('Sign Out')}
                       </button>
                     </div>
                   )}
@@ -257,7 +260,27 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {mobileOpen && (
-          <div className="xl:hidden border-t border-gray-200 bg-white py-4 px-4 animate-fade-in">
+          <div className="xl:hidden border-t border-gray-200 bg-white py-4 px-4 animate-fade-in space-y-2">
+            {/* Mobile Language Switcher */}
+            <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50 border border-gray-200 mb-2">
+              <span className="text-xs font-bold text-gray-600">🌐 {t('Languages Supported')}</span>
+              <div className="flex gap-1.5">
+                {LANGUAGES.map(lang => (
+                  <button
+                    key={lang.code}
+                    onClick={() => { setLanguage(lang.code); }}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold transition-all ${
+                      language === lang.code
+                        ? 'bg-[#0037b0] text-white shadow-xs'
+                        : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-100'
+                    }`}
+                  >
+                    {lang.native}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             {NAV_LINKS.map(link => (
               <Link
                 key={link.path}
@@ -269,13 +292,13 @@ export default function Navbar() {
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
-                {link.label}
+                {t(link.label)}
               </Link>
             ))}
             <hr className="border-gray-200 my-3" />
             {!isAuthenticated && (
               <>
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">Login Portals</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-4 mb-2">{t('Login Portals')}</p>
                 {LOGIN_PORTALS.map(portal => (
                   <Link
                     key={portal.path}
@@ -283,7 +306,7 @@ export default function Navbar() {
                     onClick={() => setMobileOpen(false)}
                     className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 rounded-lg text-sm text-gray-700 mb-1"
                   >
-                    {portal.icon} {portal.label}
+                    {portal.icon} {t(portal.label)}
                   </Link>
                 ))}
               </>

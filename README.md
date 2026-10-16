@@ -2,9 +2,6 @@
 
 This project combines the working grievance workflow and AI services from `SMART AI GREIVERANCE.zip` with the independent grievance safety rules and selected design/reference components from `pixel-perfect-replication-main.zip`.
 
-## Live demo
-https://jayanthan07-tam.github.io/SmartGrievanceAI/
-
 ## Integrated features
 - Home, grievance registration, tracking and citizen dashboard.
 - Citizen, officer, district administrator and super administrator login routes.

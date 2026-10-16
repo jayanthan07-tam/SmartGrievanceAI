@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -18,6 +19,7 @@ export default function App() {
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>
+        <LanguageProvider>
         <div className="min-h-screen flex flex-col bg-white">
           <Navbar />
           <main className="flex-1">
@@ -25,11 +27,15 @@ export default function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/register" element={<RegisterGrievancePage />} />
               <Route path="/track" element={<TrackComplaintPage />} />
-              <Route path="/citizen/login" element={<CitizenLogin />} />
+              <Route path="/citizen/login" element={<CitizenLogin initialMode="login" />} />
+              <Route path="/citizen/register" element={<CitizenLogin initialMode="register" />} />
+              <Route path="/signup" element={<CitizenLogin initialMode="register" />} />
+              <Route path="/register-account" element={<CitizenLogin initialMode="register" />} />
               <Route path="/officer/login" element={<OfficerLogin />} />
               <Route path="/district-admin/login" element={<DistrictAdminLogin />} />
               <Route path="/admin/login" element={<SuperAdminLogin />} />
               <Route path="/citizen/dashboard" element={<CitizenDashboard />} />
+              <Route path="/citizen/complaints" element={<CitizenDashboard />} />
               <Route path="/officer/dashboard" element={<RoleDashboard role="officer" />} />
               <Route path="/district-admin/dashboard" element={<RoleDashboard role="district_admin" />} />
               <Route path="/admin/dashboard" element={<RoleDashboard role="super_admin" />} />
@@ -41,6 +47,7 @@ export default function App() {
           </main>
           <Footer />
         </div>
+        </LanguageProvider>
       </AuthProvider>
     </BrowserRouter>
   );

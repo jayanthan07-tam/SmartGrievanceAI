@@ -64,10 +64,7 @@ const HIGH = ["no water", "without water", "days", "weeks", "crop damage", "medi
 const MEDIUM = ["pothole", "drain", "damaged", "decreasing", "broken", "not working", "irregular"];
 
 export function detectLanguage(t: string) {
-  if (/[\u0C00-\u0C7F]/.test(t)) return "Telugu";
   if (/[\u0B80-\u0BFF]/.test(t)) return "Tamil";
-  if (/[\u0900-\u097F]/.test(t)) return "Hindi";
-  if (/\b(maa|mana|ledu|undi|nahi|hai|kya|illai|irukku)\b/i.test(t)) return "Romanized Indian language (mixed)";
   return "English";
 }
 

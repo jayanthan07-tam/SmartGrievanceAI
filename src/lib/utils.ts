@@ -90,8 +90,6 @@ export function getStatusConfig(status: ComplaintStatus) {
 export function getLanguageName(code: string): string {
   const names: Record<string, string> = {
     en: 'English',
-    te: 'Telugu',
-    hi: 'Hindi',
     ta: 'Tamil',
   };
   return names[code] || code;
