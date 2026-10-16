@@ -63,9 +63,9 @@ export default function CitizenDashboard() {
     });
   }, [activeComplaints, statusFilter, priorityFilter, searchQuery]);
 
-  // Compute stats based on personal complaints if available, or overall civic complaints
+  // Compute stats based on active scope (personal grievances or community grievances)
   const stats = useMemo(() => {
-    const target = scope === 'my' && myComplaints.length > 0 ? myComplaints : allSystemComplaints;
+    const target = scope === 'my' ? myComplaints : allSystemComplaints;
     const total = target.length;
     const resolved = target.filter(c => c.status === 'resolved').length;
     const inProgress = target.filter(c => ['in_progress', 'assigned', 'reopened'].includes(c.status)).length;
@@ -137,14 +137,14 @@ export default function CitizenDashboard() {
           </div>
         </div>
 
-        {/* Demo notification banner */}
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-amber-900">
+        {/* Workspace notification banner */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 flex items-center justify-between gap-3 text-xs text-blue-900">
           <div className="flex items-center gap-2">
-            <span>⚗️</span>
-            <span><strong>{t('Citizen Workspace (Demo):')}</strong> {t('Displaying sample grievances filed under this test citizen account. Submissions update the local store in real time.')}</span>
+            <span>📋</span>
+            <span><strong>{t('Citizen Workspace:')}</strong> {t('Register and track citizen grievances in real time. Submissions update the local store immediately.')}</span>
           </div>
-          <span className="font-mono text-[11px] bg-amber-100 px-2 py-0.5 rounded text-amber-800 font-semibold shrink-0">
-            {t('LOCAL SANDBOX')}
+          <span className="font-mono text-[11px] bg-blue-100 px-2 py-0.5 rounded text-blue-800 font-semibold shrink-0">
+            {t('LIVE WORKSPACE')}
           </span>
         </div>
 
@@ -283,25 +283,26 @@ export default function CitizenDashboard() {
               {/* Complaints List Table / Cards */}
               {filteredComplaints.length === 0 ? (
                 <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-8">
-                  <p className="text-3xl mb-2">📋</p>
-                  <p className="text-sm font-semibold text-slate-700">
-                    {scope === 'my'
-                      ? t('No grievances filed under this account yet')
+                  <p className="text-4xl mb-3">📋</p>
+                  <h3 className="text-base font-bold text-slate-800">
+                    {activeComplaints.length === 0
+                      ? t('No complaints yet. Register your first grievance to get started.')
                       : t('No complaints found matching filters')}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-                    {scope === 'my'
-                      ? t('You have not lodged any grievances with this account yet. You can file a new grievance or explore public community grievances.')
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1.5 max-w-md mx-auto">
+                    {activeComplaints.length === 0
+                      ? t('Submit your civic grievance now to track its real-time AI triage, priority scoring, and department assignment.')
                       : t('Try adjusting your search keywords or filter settings.')}
                   </p>
-                  <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                  <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
                     <Link
                       to="/register"
-                      className="px-4 py-2 rounded-lg bg-[#1D4ED8] text-white text-xs font-bold hover:bg-blue-800 transition-all shadow-sm"
+                      className="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white text-xs font-bold hover:bg-blue-800 transition-all shadow-sm flex items-center gap-1.5"
                     >
-                      📝 {t('Register a Grievance')}
+                      <span>📝</span>
+                      <span>{t('Register Grievance')}</span>
                     </Link>
-                    {scope === 'my' && (
+                    {scope === 'my' && allSystemComplaints.length > 0 && (
                       <button
                         type="button"
                         onClick={() => setScope('community')}

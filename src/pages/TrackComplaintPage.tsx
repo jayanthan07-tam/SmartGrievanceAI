@@ -14,7 +14,7 @@ export default function TrackComplaintPage() {
   const queryId = searchParams.get('id') || '';
 
   const [inputVal, setInputVal] = useState(queryId);
-  const [currentId, setCurrentId] = useState(queryId || 'SGAI-2026-000001');
+  const [currentId, setCurrentId] = useState(queryId || '');
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [history, setHistory] = useState<ComplaintHistory[]>([]);
@@ -38,7 +38,13 @@ export default function TrackComplaintPage() {
 
   // Load complaint data
   useEffect(() => {
-    if (!currentId.trim()) return;
+    if (!currentId.trim()) {
+      setComplaint(null);
+      setAnalysis(null);
+      setHistory([]);
+      setNotFound(false);
+      return;
+    }
 
     const record = complaintService.getByGrievanceNumber(currentId.trim());
     if (record) {
@@ -102,13 +108,8 @@ export default function TrackComplaintPage() {
   const dept = complaint ? DEPARTMENTS.find(d => d.id === complaint.assigned_department_id) : null;
   const district = complaint ? AP_DISTRICTS.find(d => d.id === complaint.district_id) : null;
 
-  // Sample quick test IDs
-  const SAMPLE_IDS = [
-    { id: 'SGAI-2026-000001', label: t('⚡ Live Wire (Critical/In Progress)') },
-    { id: 'SGAI-2026-000002', label: t('💧 Water Contamination (High/Assigned)') },
-    { id: 'SGAI-2026-000003', label: t('💡 Street Light (Medium/Pending)') },
-    { id: 'SGAI-2026-000004', label: t('👴 Pension Disruption (Resolved)') },
-  ];
+  // Dynamically load recent complaints
+  const recentComplaints = complaintService.getAll().slice(0, 4);
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-8 lg:py-12">
@@ -138,7 +139,7 @@ export default function TrackComplaintPage() {
           </div>
         </div>
 
-        {/* Search Bar & Sample Pills */}
+        {/* Search Bar & Recent Grievance Pills */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-8 space-y-4">
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
@@ -159,25 +160,47 @@ export default function TrackComplaintPage() {
             </button>
           </form>
 
-          {/* Quick-click samples */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('Quick Demo Cases:')}</span>
-            {SAMPLE_IDS.map(s => (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => handleSelectSample(s.id)}
-                className={`px-3 py-1 rounded-lg text-xs font-mono transition-colors border ${
-                  currentId === s.id
-                    ? 'bg-blue-50 text-blue-700 border-blue-300 font-semibold'
-                    : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                }`}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
+          {/* Recent Grievances Pills */}
+          {recentComplaints.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-100">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">{t('Recent Grievances:')}</span>
+              {recentComplaints.map(s => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => handleSelectSample(s.grievance_number)}
+                  className={`px-3 py-1 rounded-lg text-xs font-mono transition-colors border ${
+                    currentId === s.grievance_number
+                      ? 'bg-blue-50 text-blue-700 border-blue-300 font-semibold'
+                      : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                  }`}
+                >
+                  {s.grievance_number} ({t(s.confirmed_priority)})
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* INITIAL EMPTY SEARCH STATE */}
+        {!currentId && !complaint && !notFound && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-10 text-center shadow-sm">
+            <div className="text-4xl mb-3">🔍</div>
+            <h3 className="text-lg font-bold text-slate-900">{t('Track Your Grievance')}</h3>
+            <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
+              {t('Enter your SGAI tracking ID above to inspect real-time AI triage, officer updates, and SLA resolution progress.')}
+            </p>
+            <div className="mt-6 flex justify-center gap-3">
+              <Link
+                to="/register"
+                className="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white text-xs font-bold hover:bg-blue-800 transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <span>📝</span>
+                <span>{t('Register Grievance')}</span>
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* NOT FOUND STATE */}
         {notFound && (
@@ -185,15 +208,16 @@ export default function TrackComplaintPage() {
             <div className="text-4xl mb-3">🔍</div>
             <h3 className="text-lg font-bold text-slate-900">{t('No Record Found')}</h3>
             <p className="text-sm text-slate-500 mt-1 max-w-md mx-auto">
-              {t('We could not locate any grievance registered with tracking ID')} &quot;{currentId}&quot;.
+              {t('We could not locate any grievance registered with tracking ID')} &quot;{currentId}&quot;. {t('Please verify the tracking number and try again.')}
             </p>
             <div className="mt-6 flex justify-center gap-3">
-              <button
-                onClick={() => handleSelectSample('SGAI-2026-000001')}
-                className="px-4 py-2 rounded-lg bg-blue-50 text-blue-700 text-xs font-semibold hover:bg-blue-100"
+              <Link
+                to="/register"
+                className="px-5 py-2.5 rounded-xl bg-[#1D4ED8] text-white text-xs font-bold hover:bg-blue-800 transition-all shadow-sm flex items-center gap-1.5"
               >
-                {t('Load Sample Critical Case (SGAI-2026-000001)')}
-              </button>
+                <span>📝</span>
+                <span>{t('Register Grievance')}</span>
+              </Link>
             </div>
           </div>
         )}

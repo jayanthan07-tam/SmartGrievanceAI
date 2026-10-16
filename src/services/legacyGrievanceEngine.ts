@@ -98,10 +98,13 @@ const KEY = "sgai.grievances";
 export function load(): Grievance[] {
   if (typeof window === "undefined") return [];
   const raw = localStorage.getItem(KEY);
-  if (raw) return JSON.parse(raw);
-  const seed = SEED.map((s, i) => build({ ...s, name: "Demo Citizen", mobile: "9000000000", email: "", language: "English" }, i + 1, new Date(Date.now() - (i + 1) * 864e5 * 0.7).toISOString()));
-  localStorage.setItem(KEY, JSON.stringify(seed));
-  return seed;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    } catch {}
+  }
+  return [];
 }
 export function save(list: Grievance[]) { localStorage.setItem(KEY, JSON.stringify(list)); }
 
@@ -136,7 +139,7 @@ export function update(id: string, patch: Partial<Grievance>, note: string, by: 
   return list;
 }
 
-const SEED = [
+export const SEED = [
   { district: "Konaseema", mandal: "Amalapuram", village: "Bandarulanka", title: "No drinking water for 3 days", description: "Our village has had no drinking water supply for three days. Hundreds of families affected." },
   { district: "Konaseema", mandal: "Amalapuram", village: "Bandarulanka", title: "Tap water stopped", description: "No water in taps for days, entire village struggling for drinking water." },
   { district: "Konaseema", mandal: "Razole", village: "Sakhinetipalli", title: "Coconut yield decreasing", description: "Coconut production is decreasing due to suspected saline water contamination." },
