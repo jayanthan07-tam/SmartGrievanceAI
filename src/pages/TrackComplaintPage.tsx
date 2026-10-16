@@ -27,6 +27,15 @@ export default function TrackComplaintPage() {
   const [feedbackComment, setFeedbackComment] = useState('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
 
+  // Sync when searchParams changes (e.g. from navigation)
+  useEffect(() => {
+    const q = searchParams.get('id');
+    if (q && q.trim()) {
+      setInputVal(q.trim());
+      setCurrentId(q.trim());
+    }
+  }, [searchParams]);
+
   // Load complaint data
   useEffect(() => {
     if (!currentId.trim()) return;

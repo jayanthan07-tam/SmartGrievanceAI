@@ -25,15 +25,39 @@ export const complaintService = {
     return getById<Complaint>(DB_KEYS.COMPLAINTS, id);
   },
 
-  // Get by grievance number
+  // Get by grievance number (supports format with or without # and case-insensitively)
   getByGrievanceNumber(num: string): Complaint | null {
+    if (!num) return null;
+    const clean = num.replace(/^#/, '').trim().toUpperCase();
     const complaints = getAll<Complaint>(DB_KEYS.COMPLAINTS);
-    return complaints.find(c => c.grievance_number.toUpperCase() === num.toUpperCase()) ?? null;
+    const found = complaints.find(c => c.grievance_number.trim().toUpperCase() === clean);
+    if (found) return found;
+
+    // Check backup store
+    try {
+      const backupRaw = localStorage.getItem('sgai_complaints_backup');
+      if (backupRaw) {
+        const backupList = JSON.parse(backupRaw) as Complaint[];
+        if (Array.isArray(backupList)) {
+          const backupFound = backupList.find(c => c.grievance_number.trim().toUpperCase() === clean);
+          if (backupFound) return backupFound;
+        }
+      }
+    } catch {}
+
+    return null;
   },
 
-  // Get for citizen
-  getForCitizen(citizenId: string): Complaint[] {
-    return getAll<Complaint>(DB_KEYS.COMPLAINTS).filter(c => c.citizen_id === citizenId);
+  // Get for citizen (matches by ID, email, or session-submitted complaint IDs)
+  getForCitizen(citizenId: string, email?: string, sessionIds?: string[]): Complaint[] {
+    const complaints = getAll<Complaint>(DB_KEYS.COMPLAINTS);
+    const sIds = new Set(sessionIds || []);
+    return complaints.filter(c => {
+      if (c.citizen_id === citizenId) return true;
+      if (email && c.citizen_id && c.citizen_id.toLowerCase() === email.toLowerCase()) return true;
+      if (sIds.has(c.id) || sIds.has(c.grievance_number)) return true;
+      return false;
+    });
   },
 
   // Get for officer's department

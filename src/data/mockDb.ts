@@ -572,20 +572,85 @@ export const DB_KEYS = {
 // ─── Database Initialization ──────────────────────────────────────────────────
 
 export function initializeDatabase(): void {
-  if (localStorage.getItem(DB_KEYS.INITIALIZED) === 'true') return;
+  try {
+    // 1. Initialize or merge COMPLAINTS safely (Never overwrite existing user complaints)
+    const rawComplaints = localStorage.getItem(DB_KEYS.COMPLAINTS);
+    if (!rawComplaints || rawComplaints === '[]' || rawComplaints === 'null') {
+      // Check if backup exists
+      const backup = localStorage.getItem('sgai_complaints_backup');
+      if (backup && backup !== '[]' && backup !== 'null') {
+        localStorage.setItem(DB_KEYS.COMPLAINTS, backup);
+      } else {
+        localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(SEED_COMPLAINTS));
+        localStorage.setItem('sgai_complaints_backup', JSON.stringify(SEED_COMPLAINTS));
+      }
+    } else {
+      // Existing complaints exist! Preserve user complaints and ensure seed complaints are present
+      try {
+        const parsed = JSON.parse(rawComplaints) as Complaint[];
+        if (Array.isArray(parsed)) {
+          const existingIds = new Set(parsed.map(c => c.id));
+          const missingSeeds = SEED_COMPLAINTS.filter(s => !existingIds.has(s.id));
+          if (missingSeeds.length > 0) {
+            const merged = [...parsed, ...missingSeeds];
+            localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(merged));
+            localStorage.setItem('sgai_complaints_backup', JSON.stringify(merged));
+          } else {
+            localStorage.setItem('sgai_complaints_backup', rawComplaints);
+          }
+        }
+      } catch (err) {
+        console.error('[SmartGrievance AI] Error parsing existing complaints, recovering from backup/seed:', err);
+        localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(SEED_COMPLAINTS));
+      }
+    }
 
-  localStorage.setItem(DB_KEYS.USERS, JSON.stringify(SEED_USERS));
-  localStorage.setItem(DB_KEYS.COMPLAINTS, JSON.stringify(SEED_COMPLAINTS));
-  localStorage.setItem(DB_KEYS.AI_ANALYSIS, JSON.stringify(SEED_AI_ANALYSIS));
-  localStorage.setItem(DB_KEYS.COMPLAINT_HISTORY, JSON.stringify(SEED_COMPLAINT_HISTORY));
-  localStorage.setItem(DB_KEYS.DUPLICATE_MATCHES, JSON.stringify(SEED_DUPLICATE_MATCHES));
-  localStorage.setItem(DB_KEYS.NOTIFICATIONS, JSON.stringify(SEED_NOTIFICATIONS));
-  localStorage.setItem(DB_KEYS.ESCALATIONS, JSON.stringify(SEED_ESCALATIONS));
-  localStorage.setItem(DB_KEYS.RESOLUTION_FEEDBACK, JSON.stringify(SEED_RESOLUTION_FEEDBACK));
-  localStorage.setItem(DB_KEYS.OFFICERS, JSON.stringify(SEED_OFFICERS));
-  localStorage.setItem(DB_KEYS.INITIALIZED, 'true');
+    // 2. Initialize USERS safely
+    const rawUsers = localStorage.getItem(DB_KEYS.USERS);
+    if (!rawUsers || rawUsers === '[]') {
+      localStorage.setItem(DB_KEYS.USERS, JSON.stringify(SEED_USERS));
+    } else {
+      try {
+        const parsedUsers = JSON.parse(rawUsers);
+        if (Array.isArray(parsedUsers)) {
+          const userEmails = new Set(parsedUsers.map((u: any) => (u.email || '').toLowerCase()));
+          const missingUsers = SEED_USERS.filter(s => !userEmails.has(s.email.toLowerCase()));
+          if (missingUsers.length > 0) {
+            localStorage.setItem(DB_KEYS.USERS, JSON.stringify([...parsedUsers, ...missingUsers]));
+          }
+        }
+      } catch (e) {
+        localStorage.setItem(DB_KEYS.USERS, JSON.stringify(SEED_USERS));
+      }
+    }
 
-  console.log('[SmartGrievance AI] Demo database initialized with', SEED_COMPLAINTS.length, 'complaints.');
+    // 3. Initialize AI Analysis, History, Officers, Notifications if missing
+    if (!localStorage.getItem(DB_KEYS.AI_ANALYSIS)) {
+      localStorage.setItem(DB_KEYS.AI_ANALYSIS, JSON.stringify(SEED_AI_ANALYSIS));
+    }
+    if (!localStorage.getItem(DB_KEYS.COMPLAINT_HISTORY)) {
+      localStorage.setItem(DB_KEYS.COMPLAINT_HISTORY, JSON.stringify(SEED_COMPLAINT_HISTORY));
+    }
+    if (!localStorage.getItem(DB_KEYS.DUPLICATE_MATCHES)) {
+      localStorage.setItem(DB_KEYS.DUPLICATE_MATCHES, JSON.stringify(SEED_DUPLICATE_MATCHES));
+    }
+    if (!localStorage.getItem(DB_KEYS.NOTIFICATIONS)) {
+      localStorage.setItem(DB_KEYS.NOTIFICATIONS, JSON.stringify(SEED_NOTIFICATIONS));
+    }
+    if (!localStorage.getItem(DB_KEYS.ESCALATIONS)) {
+      localStorage.setItem(DB_KEYS.ESCALATIONS, JSON.stringify(SEED_ESCALATIONS));
+    }
+    if (!localStorage.getItem(DB_KEYS.RESOLUTION_FEEDBACK)) {
+      localStorage.setItem(DB_KEYS.RESOLUTION_FEEDBACK, JSON.stringify(SEED_RESOLUTION_FEEDBACK));
+    }
+    if (!localStorage.getItem(DB_KEYS.OFFICERS)) {
+      localStorage.setItem(DB_KEYS.OFFICERS, JSON.stringify(SEED_OFFICERS));
+    }
+
+    localStorage.setItem(DB_KEYS.INITIALIZED, 'true');
+  } catch (err) {
+    console.error('[SmartGrievance AI] Storage initialization error:', err);
+  }
 }
 
 export function resetDatabase(): void {
@@ -598,17 +663,50 @@ export function resetDatabase(): void {
 export function getAll<T>(key: string): T[] {
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) {
-      if (localStorage.getItem(DB_KEYS.INITIALIZED) !== 'true') {
-        initializeDatabase();
-        const retryRaw = localStorage.getItem(key);
-        return retryRaw ? JSON.parse(retryRaw) : [];
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
       }
-      return [];
     }
-    return JSON.parse(raw);
+
+    // If key is complaints and raw is empty or missing, recover from backup or seed!
+    if (key === DB_KEYS.COMPLAINTS) {
+      const backup = localStorage.getItem('sgai_complaints_backup');
+      if (backup) {
+        try {
+          const parsedBackup = JSON.parse(backup);
+          if (Array.isArray(parsedBackup) && parsedBackup.length > 0) {
+            localStorage.setItem(DB_KEYS.COMPLAINTS, backup);
+            return parsedBackup;
+          }
+        } catch {}
+      }
+
+      initializeDatabase();
+      const retryRaw = localStorage.getItem(key);
+      if (retryRaw) {
+        try {
+          const parsedRetry = JSON.parse(retryRaw);
+          if (Array.isArray(parsedRetry) && parsedRetry.length > 0) return parsedRetry;
+        } catch {}
+      }
+      return (SEED_COMPLAINTS as unknown) as T[];
+    }
+
+    // If key is users and raw is empty, recover users
+    if (key === DB_KEYS.USERS) {
+      initializeDatabase();
+      const retryUsers = localStorage.getItem(key);
+      return retryUsers ? JSON.parse(retryUsers) : (SEED_USERS as unknown as T[]);
+    }
+
+    return [];
   } catch (err) {
     console.error(`[SmartGrievance AI] Error reading localStorage key: ${key}`, err);
+    if (key === DB_KEYS.COMPLAINTS) {
+      return (SEED_COMPLAINTS as unknown) as T[];
+    }
     return [];
   }
 }
@@ -620,8 +718,16 @@ export function getById<T extends { id: string }>(key: string, id: string): T | 
 
 export function insert<T extends { id: string }>(key: string, item: T): T {
   const items = getAll<T>(key);
-  items.push(item);
+  const existingIdx = items.findIndex((i) => i.id === item.id);
+  if (existingIdx !== -1) {
+    items[existingIdx] = { ...items[existingIdx], ...item };
+  } else {
+    items.unshift(item); // Keep newest items first
+  }
   localStorage.setItem(key, JSON.stringify(items));
+  if (key === DB_KEYS.COMPLAINTS) {
+    localStorage.setItem('sgai_complaints_backup', JSON.stringify(items));
+  }
   return item;
 }
 
@@ -631,6 +737,9 @@ export function updateById<T extends { id: string }>(key: string, id: string, up
   if (idx === -1) return null;
   items[idx] = { ...items[idx], ...updates };
   localStorage.setItem(key, JSON.stringify(items));
+  if (key === DB_KEYS.COMPLAINTS) {
+    localStorage.setItem('sgai_complaints_backup', JSON.stringify(items));
+  }
   return items[idx];
 }
 
@@ -639,6 +748,9 @@ export function deleteById<T extends { id: string }>(key: string, id: string): b
   const filtered = items.filter((item) => item.id !== id);
   if (filtered.length === items.length) return false;
   localStorage.setItem(key, JSON.stringify(filtered));
+  if (key === DB_KEYS.COMPLAINTS) {
+    localStorage.setItem('sgai_complaints_backup', JSON.stringify(filtered));
+  }
   return true;
 }
 
@@ -648,6 +760,14 @@ export function generateId(prefix: string): string {
 
 export function generateGrievanceNumber(): string {
   const complaints = getAll<Complaint>(DB_KEYS.COMPLAINTS);
-  const nextNum = complaints.length + 1;
+  let maxNum = 0;
+  for (const c of complaints) {
+    const match = c.grievance_number.match(/SGAI-\d+-(\d+)/i);
+    if (match) {
+      const n = parseInt(match[1], 10);
+      if (!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  }
+  const nextNum = Math.max(maxNum + 1, complaints.length + 1);
   return `SGAI-2026-${String(nextNum).padStart(6, '0')}`;
 }

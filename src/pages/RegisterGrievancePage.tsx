@@ -159,7 +159,7 @@ export default function RegisterGrievancePage() {
     setSubmitting(true);
 
     try {
-      const citizenId = user?.id || 'u-citizen-1';
+      const citizenId = user?.id || (contact.email ? `u-citizen-${contact.email.trim().toLowerCase()}` : 'u-citizen-1');
 
       const result = await complaintService.submit({
         citizen_id: citizenId,
@@ -172,6 +172,17 @@ export default function RegisterGrievancePage() {
         location_lat: location.coords?.lat,
         location_lng: location.coords?.lng,
       });
+
+      // Track newly created complaint in browser session list
+      try {
+        const sessionList = JSON.parse(localStorage.getItem('sgai_session_complaints') || '[]');
+        if (Array.isArray(sessionList) && !sessionList.includes(result.complaint.id)) {
+          sessionList.push(result.complaint.id);
+          localStorage.setItem('sgai_session_complaints', JSON.stringify(sessionList));
+        }
+      } catch (e) {
+        console.warn('Could not store session complaint id:', e);
+      }
 
       setTrackingResult({
         id: result.complaint.id,

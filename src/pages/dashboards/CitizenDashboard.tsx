@@ -22,14 +22,37 @@ export default function CitizenDashboard() {
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'complaints' | 'notifications'>('complaints');
+  const [scope, setScope] = useState<'my' | 'community'>('my');
 
-  // Load complaints and notifications from complaintService
-  const allComplaints = complaintService.getForCitizen(citizenId);
-  const notifications = complaintService.getNotifications(citizenId);
+  // Read any complaints submitted during this browser session
+  const [sessionComplaintIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sgai_session_complaints') || '[]');
+    } catch {
+      return [];
+    }
+  });
+
+  // Load citizen's complaints + session complaints
+  const myComplaints = useMemo(() => {
+    return complaintService.getForCitizen(citizenId, citizenEmail, sessionComplaintIds);
+  }, [citizenId, citizenEmail, sessionComplaintIds]);
+
+  // Load all complaints in system
+  const allSystemComplaints = useMemo(() => {
+    return complaintService.getAll();
+  }, []);
+
+  const notifications = useMemo(() => {
+    return complaintService.getNotifications(citizenId);
+  }, [citizenId]);
+
+  // The active list based on whether viewing personal or community
+  const activeComplaints = scope === 'my' ? myComplaints : allSystemComplaints;
 
   // Filter complaints
   const filteredComplaints = useMemo(() => {
-    return allComplaints.filter(c => {
+    return activeComplaints.filter(c => {
       const matchesStatus = statusFilter === 'all' || c.status === statusFilter;
       const matchesPriority = priorityFilter === 'all' || c.confirmed_priority === priorityFilter;
       const matchesSearch = !searchQuery ||
@@ -38,17 +61,18 @@ export default function CitizenDashboard() {
         c.mandal.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesStatus && matchesPriority && matchesSearch;
     });
-  }, [allComplaints, statusFilter, priorityFilter, searchQuery]);
+  }, [activeComplaints, statusFilter, priorityFilter, searchQuery]);
 
-  // Compute stats
+  // Compute stats based on personal complaints if available, or overall civic complaints
   const stats = useMemo(() => {
-    const total = allComplaints.length;
-    const resolved = allComplaints.filter(c => c.status === 'resolved').length;
-    const inProgress = allComplaints.filter(c => ['in_progress', 'assigned', 'reopened'].includes(c.status)).length;
-    const pending = allComplaints.filter(c => ['submitted', 'ai_analyzed', 'pending_review'].includes(c.status)).length;
-    const critical = allComplaints.filter(c => c.confirmed_priority === 'critical' && c.status !== 'resolved').length;
+    const target = scope === 'my' && myComplaints.length > 0 ? myComplaints : allSystemComplaints;
+    const total = target.length;
+    const resolved = target.filter(c => c.status === 'resolved').length;
+    const inProgress = target.filter(c => ['in_progress', 'assigned', 'reopened'].includes(c.status)).length;
+    const pending = target.filter(c => ['submitted', 'ai_analyzed', 'pending_review'].includes(c.status)).length;
+    const critical = target.filter(c => c.confirmed_priority === 'critical' && c.status !== 'resolved').length;
     return { total, resolved, inProgress, pending, critical };
-  }, [allComplaints]);
+  }, [scope, myComplaints, allSystemComplaints]);
 
   const handleMarkNotification = (notifId: string) => {
     complaintService.markNotificationRead(notifId);
@@ -160,36 +184,56 @@ export default function CitizenDashboard() {
         {/* Main Content Area */}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-slate-200 px-6 pt-4 gap-6 bg-slate-50/50">
-            <button
-              onClick={() => setActiveTab('complaints')}
-              className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
-                activeTab === 'complaints'
-                  ? 'border-[#1D4ED8] text-[#1D4ED8]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <span>📋 {t('My Grievances')}</span>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono">
-                {allComplaints.length}
-              </span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('notifications')}
-              className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${
-                activeTab === 'notifications'
-                  ? 'border-[#1D4ED8] text-[#1D4ED8]'
-                  : 'border-transparent text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              <span>🔔 {t('Notifications & Alerts')}</span>
-              {notifications.filter(n => !n.read_status).length > 0 && (
-                <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono font-bold animate-pulse">
-                  {notifications.filter(n => !n.read_status).length} {t('new')}
+          <div className="flex flex-wrap items-center justify-between border-b border-slate-200 px-6 pt-4 gap-4 bg-slate-50/50">
+            <div className="flex items-center gap-6">
+              <button
+                onClick={() => { setActiveTab('complaints'); setScope('my'); }}
+                className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'complaints' && scope === 'my'
+                    ? 'border-[#1D4ED8] text-[#1D4ED8]'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>👤 {t('My Grievances')}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-mono font-bold">
+                  {myComplaints.length}
                 </span>
-              )}
-            </button>
+              </button>
+
+              <button
+                onClick={() => { setActiveTab('complaints'); setScope('community'); }}
+                className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'complaints' && scope === 'community'
+                    ? 'border-[#1D4ED8] text-[#1D4ED8]'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>🏛️ {t('All Community Grievances')}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 font-mono font-bold">
+                  {allSystemComplaints.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('notifications')}
+                className={`pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+                  activeTab === 'notifications'
+                    ? 'border-[#1D4ED8] text-[#1D4ED8]'
+                    : 'border-transparent text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                <span>🔔 {t('Notifications & Alerts')}</span>
+                {notifications.filter(n => !n.read_status).length > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-rose-600 text-white font-mono font-bold animate-pulse">
+                    {notifications.filter(n => !n.read_status).length} {t('new')}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <div className="pb-3 text-xs text-slate-400 hidden sm:block">
+              {scope === 'my' ? t('Viewing grievances filed by you') : t('Viewing all public grievances')}
+            </div>
           </div>
 
           {/* TAB 1: MY GRIEVANCES */}
@@ -238,10 +282,35 @@ export default function CitizenDashboard() {
 
               {/* Complaints List Table / Cards */}
               {filteredComplaints.length === 0 ? (
-                <div className="py-12 text-center text-slate-400">
-                  <p className="text-3xl mb-2">📂</p>
-                  <p className="text-sm font-semibold text-slate-700">{t('No complaints found')}</p>
-                  <p className="text-xs text-slate-500 mt-1">{t('Try adjusting your filters or file a new grievance.')}</p>
+                <div className="py-12 text-center text-slate-400 bg-slate-50/50 rounded-xl border border-dashed border-slate-200 p-8">
+                  <p className="text-3xl mb-2">📋</p>
+                  <p className="text-sm font-semibold text-slate-700">
+                    {scope === 'my'
+                      ? t('No grievances filed under this account yet')
+                      : t('No complaints found matching filters')}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                    {scope === 'my'
+                      ? t('You have not lodged any grievances with this account yet. You can file a new grievance or explore public community grievances.')
+                      : t('Try adjusting your search keywords or filter settings.')}
+                  </p>
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+                    <Link
+                      to="/register"
+                      className="px-4 py-2 rounded-lg bg-[#1D4ED8] text-white text-xs font-bold hover:bg-blue-800 transition-all shadow-sm"
+                    >
+                      📝 {t('Register a Grievance')}
+                    </Link>
+                    {scope === 'my' && (
+                      <button
+                        type="button"
+                        onClick={() => setScope('community')}
+                        className="px-4 py-2 rounded-lg bg-white border border-slate-300 text-slate-700 text-xs font-semibold hover:bg-slate-100 transition-all cursor-pointer shadow-2xs"
+                      >
+                        🌐 {t('Browse Community Grievances')} ({allSystemComplaints.length})
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="divide-y divide-slate-100">
