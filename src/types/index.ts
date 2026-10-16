@@ -63,7 +63,6 @@ export interface District {
   id: string;
   state: string;
   district_name: string;
-  mandals: string[];
   lat: number;
   lng: number;
 }
@@ -101,6 +100,8 @@ export interface Complaint {
   district_id: string;
   mandal: string;
   village: string;
+  address?: string;
+  pincode?: string;
   category: string;
   suggested_priority: Priority;
   confirmed_priority: Priority;

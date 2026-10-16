@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
-import { AP_DISTRICTS } from '../data/districts';
+import { TN_DISTRICTS } from '../data/districts';
 import { DEPARTMENTS } from '../data/departments';
 import { complaintService } from '../services/complaintService';
 import { classifyComplaint, detectLanguage, detectDuplicates } from '../services/aiClassifier';
@@ -8,6 +8,86 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLanguage } from '../contexts/LanguageContext';
 import { PriorityBadge } from '../components/ui';
 import type { Language, Priority } from '../types';
+
+interface ReverseGeocodeAddress {
+  state?: string;
+  state_district?: string;
+  district?: string;
+  county?: string;
+  city_district?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  municipality?: string;
+  suburb?: string;
+  neighbourhood?: string;
+  quarter?: string;
+  house_number?: string;
+  road?: string;
+  postcode?: string;
+}
+
+interface ReverseGeocodeResult {
+  display_name?: string;
+  address?: ReverseGeocodeAddress;
+}
+
+const DISTRICT_ALIASES: Record<string, string> = {
+  kanniyakumari: 'dist-kanyakumari',
+  kanchipuram: 'dist-kancheepuram',
+  pudukkottai: 'dist-pudukkottai',
+  nilgiris: 'dist-the-nilgiris',
+  nilgiri: 'dist-the-nilgiris',
+  tuticorin: 'dist-thoothukudi',
+  trichy: 'dist-tiruchirappalli',
+  trichirappalli: 'dist-tiruchirappalli',
+  villupuram: 'dist-viluppuram',
+  tirupattur: 'dist-tirupathur',
+};
+
+function normalizePlaceName(value: string): string {
+  return value
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\bdistrict\b/g, '')
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function findTamilNaduDistrict(address: ReverseGeocodeAddress) {
+  const candidates = [address.state_district, address.district, address.county, address.city_district]
+    .filter((value): value is string => Boolean(value));
+
+  for (const candidate of candidates) {
+    const normalized = normalizePlaceName(candidate);
+    const aliasId = DISTRICT_ALIASES[normalized];
+    const exact = TN_DISTRICTS.find(d => normalizePlaceName(d.district_name) === normalized);
+    if (exact) return exact;
+    if (aliasId) return TN_DISTRICTS.find(d => d.id === aliasId);
+
+    const partial = TN_DISTRICTS.find(d => normalized.includes(normalizePlaceName(d.district_name)));
+    if (partial) return partial;
+  }
+
+  return undefined;
+}
+
+function formatReverseGeocodedAddress(address: ReverseGeocodeAddress, fallback?: string): string {
+  const parts = [
+    address.house_number,
+    address.road,
+    address.neighbourhood,
+    address.quarter,
+    address.suburb,
+    address.city_district,
+    address.village || address.town || address.city || address.municipality,
+  ].filter((value): value is string => Boolean(value?.trim()));
+  const uniqueParts = parts.filter((part, index) =>
+    parts.findIndex(candidate => candidate.toLowerCase() === part.toLowerCase()) === index
+  );
+
+  return uniqueParts.join(', ') || fallback || '';
+}
 
 export default function RegisterGrievancePage() {
   const { user } = useAuth();
@@ -29,8 +109,8 @@ export default function RegisterGrievancePage() {
   });
 
   const [location, setLocation] = useState({
-    districtId: 'dist-guntur',
-    mandal: 'Guntur',
+    districtId: '',
+    mandal: '',
     village: '',
     address: '',
     pincode: '',
@@ -46,6 +126,8 @@ export default function RegisterGrievancePage() {
   });
 
   const [isListening, setIsListening] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [trackingResult, setTrackingResult] = useState<{
     id: string;
@@ -55,16 +137,10 @@ export default function RegisterGrievancePage() {
     confidence: number;
   } | null>(null);
 
-  // Set default mandals for selected district
+  // Keep the selected district available for the review summary.
   const currentDistrict = useMemo(() => {
-    return AP_DISTRICTS.find(d => d.id === location.districtId) || AP_DISTRICTS[6]; // Guntur fallback
+    return TN_DISTRICTS.find(d => d.id === location.districtId) || TN_DISTRICTS.find(d => d.id === 'dist-chennai')!;
   }, [location.districtId]);
-
-  useEffect(() => {
-    if (currentDistrict.mandals.length > 0 && !currentDistrict.mandals.includes(location.mandal)) {
-      setLocation(l => ({ ...l, mandal: currentDistrict.mandals[0] }));
-    }
-  }, [currentDistrict, location.mandal]);
 
   // Pre-fill department if query param exists
   useEffect(() => {
@@ -127,24 +203,79 @@ export default function RegisterGrievancePage() {
     }, 1200);
   };
 
-  // Simulated GPS fetch
-  const handleGetLocation = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          setLocation(l => ({
-            ...l,
-            coords: { lat: pos.coords.latitude, lng: pos.coords.longitude },
-          }));
-        },
-        () => {
-          // Fallback to district center
-          setLocation(l => ({
-            ...l,
-            coords: { lat: currentDistrict.lat, lng: currentDistrict.lng },
-          }));
-        }
-      );
+  // Use device GPS, then reverse-geocode it into a Tamil Nadu address.
+  const handleGetLocation = async () => {
+    setLocationError('');
+
+    if (!navigator.geolocation) {
+      setLocationError(t('Your browser does not support location access.'));
+      return;
+    }
+
+    setIsLocating(true);
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 30000,
+        });
+      });
+
+      const { latitude: lat, longitude: lng } = position.coords;
+      const query = new URLSearchParams({
+        format: 'jsonv2',
+        lat: String(lat),
+        lon: String(lng),
+        zoom: '18',
+        addressdetails: '1',
+      });
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?${query.toString()}`, {
+        headers: { 'Accept-Language': 'en,ta' },
+      });
+      if (!response.ok) throw new Error('Reverse geocoding request failed');
+
+      const result = await response.json() as ReverseGeocodeResult;
+      const address = result.address;
+      if (!address) throw new Error('Reverse geocoding returned no address');
+      if (!address.state) throw new Error('Reverse geocoding did not identify the state');
+      const detectedState = normalizePlaceName(address.state);
+      if (!detectedState.includes('tamilnadu') && !address.state.includes('தமிழ்நாடு')) {
+        setLocationError(t('Your current location is outside Tamil Nadu. Choose a Tamil Nadu district manually.'));
+        return;
+      }
+
+      const detectedDistrict = findTamilNaduDistrict(address);
+      const detectedAddress = formatReverseGeocodedAddress(address, result.display_name);
+      const locality = address.neighbourhood || address.quarter || address.suburb || address.village || address.town || address.city_district || address.city || address.municipality;
+      const detectedTaluk = address.county && normalizePlaceName(address.county) !== normalizePlaceName(detectedDistrict?.district_name || '')
+        ? address.county.replace(/\s+District$/i, '')
+        : '';
+
+      setLocation(previous => ({
+        ...previous,
+        ...(detectedDistrict ? { districtId: detectedDistrict.id } : {}),
+        mandal: detectedTaluk || previous.mandal,
+        village: locality || previous.village,
+        address: detectedAddress || previous.address,
+        pincode: address.postcode || previous.pincode,
+        coords: { lat, lng },
+      }));
+
+      if (!detectedDistrict) {
+        setLocationError(t('Address found in Tamil Nadu, but the district was not identified. Please choose it manually.'));
+      }
+    } catch (error) {
+      if (typeof error === 'object' && error !== null && 'code' in error) {
+        const geoCode = (error as GeolocationPositionError).code;
+        if (geoCode === 1) setLocationError(t('Location permission was denied. Allow location access and try again.'));
+        else if (geoCode === 3) setLocationError(t('Location lookup timed out. Please try again.'));
+        else setLocationError(t('Could not get your current location. Please try again.'));
+      } else {
+        setLocationError(t('Could not fetch the address. Choose a Tamil Nadu district and enter the address manually.'));
+      }
+    } finally {
+      setIsLocating(false);
     }
   };
 
@@ -169,6 +300,8 @@ export default function RegisterGrievancePage() {
         district_id: location.districtId,
         mandal: location.mandal,
         village: location.village || 'Ward 12',
+        address: location.address,
+        pincode: location.pincode,
         location_lat: location.coords?.lat,
         location_lng: location.coords?.lng,
       });
@@ -207,7 +340,7 @@ export default function RegisterGrievancePage() {
       label: t('⚡ Live Wire (Critical/In Progress)'),
       lang: 'English',
       title: 'Dangling live 11kV electrical wire sparking near primary school',
-      text: 'An 11kV overhead electric wire snapped and is dangling 3 feet from the road right outside ZP High School in Guntur. Sparks are flying and children walk here every afternoon. Immediate power isolation required to prevent fatal electrocution.',
+      text: 'An 11kV overhead electric wire snapped and is dangling 3 feet from the road near a school in Chennai. Sparks are flying and children walk here every afternoon. Immediate power isolation required to prevent fatal electrocution.',
     },
     {
       label: t('💧 Water Contamination (High/Assigned)'),
@@ -419,7 +552,7 @@ export default function RegisterGrievancePage() {
                   <span>📍</span> {t('Incident Location')}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1">
-                  {t('Accurate location ensures the complaint is routed directly to the specific Mandal Parishad or Municipal Nodal Officer.')}
+                  {t('Accurate location helps route your grievance to the correct taluk and local office.')}
                 </p>
               </div>
 
@@ -429,11 +562,16 @@ export default function RegisterGrievancePage() {
                     {t('District')} <span className="text-red-500">*</span>
                   </label>
                   <select
+                    required
                     value={location.districtId}
-                    onChange={e => setLocation({ ...location, districtId: e.target.value })}
+                    onChange={e => {
+                      setLocation(previous => ({ ...previous, districtId: e.target.value, mandal: '' }));
+                      setLocationError('');
+                    }}
                     className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8] bg-white cursor-pointer"
                   >
-                    {AP_DISTRICTS.map(d => (
+                    <option value="" disabled>{t('Select District')}</option>
+                    {TN_DISTRICTS.map(d => (
                       <option key={d.id} value={d.id}>{d.district_name} {t('District')}</option>
                     ))}
                   </select>
@@ -441,17 +579,16 @@ export default function RegisterGrievancePage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 uppercase mb-1.5">
-                    {t('Mandal / Tehsil')} <span className="text-red-500">*</span>
+                    {t('Taluk / Tehsil')} <span className="text-red-500">*</span>
                   </label>
-                  <select
+                  <input
+                    type="text"
+                    required
                     value={location.mandal}
-                    onChange={e => setLocation({ ...location, mandal: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8] bg-white cursor-pointer"
-                  >
-                    {currentDistrict.mandals.map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
+                    onChange={e => setLocation(previous => ({ ...previous, mandal: e.target.value }))}
+                    placeholder={t('e.g., Mylapore')}
+                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8]"
+                  />
                 </div>
 
                 <div>
@@ -462,7 +599,7 @@ export default function RegisterGrievancePage() {
                     type="text"
                     required
                     value={location.village}
-                    onChange={e => setLocation({ ...location, village: e.target.value })}
+                    onChange={e => setLocation(previous => ({ ...previous, village: e.target.value }))}
                     placeholder={t('e.g., Lakshmipuram, Ward 12')}
                     className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8]"
                   />
@@ -490,35 +627,42 @@ export default function RegisterGrievancePage() {
                 <textarea
                   rows={2}
                   value={location.address}
-                  onChange={e => setLocation({ ...location, address: e.target.value })}
+                  onChange={e => setLocation(previous => ({ ...previous, address: e.target.value }))}
                   placeholder={t('Landmark, street, or house number')}
                   className="w-full px-4 py-2.5 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-[#1D4ED8]/20 focus:border-[#1D4ED8] resize-none"
                 />
               </div>
 
-              {/* Geo location simulation */}
+              {/* Current location lookup */}
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 rounded-xl bg-blue-50/60 border border-blue-100 gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg bg-blue-100 text-[#1D4ED8] flex items-center justify-center text-lg">
                     🧭
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-slate-800">{t('Geotagging & Incident Coordinates')}</p>
+                    <p className="text-xs font-bold text-slate-800">{t('Current Location & Address')}</p>
                     <p className="text-[11px] text-slate-500">
                       {location.coords
                         ? `${t('Location detected')}: Lat ${location.coords.lat.toFixed(4)}, Lng ${location.coords.lng.toFixed(4)}`
-                        : t('Capture GPS pin to assist field inspection crews')}
+                        : t('Use GPS to fill the address and select the Tamil Nadu district.')}
                     </p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={handleGetLocation}
+                  disabled={isLocating}
                   className="px-4 py-2 rounded-lg bg-white border border-blue-200 text-blue-700 hover:bg-blue-50 text-xs font-semibold shadow-sm transition-all shrink-0"
                 >
-                  {location.coords ? `✓ ${t('Location detected')}` : `📍 ${t('Fetch My Current Location')}`}
+                  {isLocating ? `⏳ ${t('Finding your location…')}` : location.coords ? `✓ ${t('Location detected')}` : `📍 ${t('Fetch My Current Location')}`}
                 </button>
               </div>
+              <p className="-mt-4 text-[11px] text-slate-500">{t('Your coordinates are sent to OpenStreetMap to look up the address.')}</p>
+              {locationError && (
+                <p role="alert" className="-mt-3 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+                  {locationError}
+                </p>
+              )}
 
               <div className="flex justify-between pt-4">
                 <button
@@ -531,8 +675,16 @@ export default function RegisterGrievancePage() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (!location.districtId) {
+                      alert(t('Please select a Tamil Nadu district.'));
+                      return;
+                    }
                     if (!location.village.trim()) {
                       alert(t('Please provide your village, town, or ward.'));
+                      return;
+                    }
+                    if (!location.mandal.trim()) {
+                      alert(t('Please provide your taluk.'));
                       return;
                     }
                     setStep(3);
@@ -802,10 +954,11 @@ export default function RegisterGrievancePage() {
                     <button type="button" onClick={() => setStep(2)} className="text-xs text-blue-600 hover:underline">{t('Edit')}</button>
                   </div>
                   <p className="text-sm font-semibold text-slate-900">
-                    {location.village}, {location.mandal} {t('Mandal / Tehsil')}
+                    {location.village}, {location.mandal} {t('Taluk / Tehsil')}
                   </p>
                   <p className="text-xs text-slate-600">{currentDistrict.district_name} {t('District')}</p>
                   {location.address && <p className="text-xs text-slate-500">{t('Specific Location / Street Address')}: {location.address}</p>}
+                  {location.pincode && <p className="text-xs text-slate-500">{t('Pincode')}: {location.pincode}</p>}
                 </div>
               </div>
 

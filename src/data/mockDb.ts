@@ -40,9 +40,9 @@ export const SEED_USERS: User[] = [
 ];
 
 export const SEED_OFFICERS: Officer[] = [
-  { id: 'off-1', user_id: 'u-officer-1', department_id: 'dept-water-supply', district_id: 'dist-guntur', designation: 'Assistant Engineer', cases_assigned: 0, cases_resolved: 0 },
-  { id: 'off-2', user_id: 'u-officer-2', department_id: 'dept-health', district_id: 'dist-guntur', designation: 'District Medical Officer', cases_assigned: 0, cases_resolved: 0 },
-  { id: 'off-3', user_id: 'u-officer-3', department_id: 'dept-electricity', district_id: 'dist-visakhapatnam', designation: 'Electrical Supervisor', cases_assigned: 0, cases_resolved: 0 },
+  { id: 'off-1', user_id: 'u-officer-1', department_id: 'dept-water-supply', district_id: 'dist-chennai', designation: 'Assistant Engineer', cases_assigned: 0, cases_resolved: 0 },
+  { id: 'off-2', user_id: 'u-officer-2', department_id: 'dept-health', district_id: 'dist-chennai', designation: 'District Medical Officer', cases_assigned: 0, cases_resolved: 0 },
+  { id: 'off-3', user_id: 'u-officer-3', department_id: 'dept-electricity', district_id: 'dist-coimbatore', designation: 'Electrical Supervisor', cases_assigned: 0, cases_resolved: 0 },
 ];
 
 // ─── Active Demo Datasets (Starts Empty for Fresh Registration) ───────────────

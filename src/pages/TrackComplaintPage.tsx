@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { complaintService } from '../services/complaintService';
 import { DEPARTMENTS } from '../data/departments';
-import { AP_DISTRICTS } from '../data/districts';
+import { TN_DISTRICTS } from '../data/districts';
 import { PriorityBadge, StatusBadge } from '../components/ui';
 import { formatDate, timeAgo } from '../lib/utils';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -106,7 +106,7 @@ export default function TrackComplaintPage() {
   };
 
   const dept = complaint ? DEPARTMENTS.find(d => d.id === complaint.assigned_department_id) : null;
-  const district = complaint ? AP_DISTRICTS.find(d => d.id === complaint.district_id) : null;
+  const district = complaint ? TN_DISTRICTS.find(d => d.id === complaint.district_id) : null;
 
   // Dynamically load recent complaints
   const recentComplaints = complaintService.getAll().slice(0, 4);
@@ -284,7 +284,7 @@ export default function TrackComplaintPage() {
                 <div>
                   <span className="text-slate-400 font-medium">{t('Jurisdiction')}</span>
                   <p className="font-bold text-slate-900 mt-0.5">
-                    {complaint.mandal} Mandal, {district?.district_name || 'Guntur'}
+                    {complaint.mandal} Taluk, {district?.district_name || 'Chennai'}
                   </p>
                 </div>
                 <div>

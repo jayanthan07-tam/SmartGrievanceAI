@@ -83,6 +83,8 @@ export const complaintService = {
     district_id: string;
     mandal: string;
     village: string;
+    address?: string;
+    pincode?: string;
     preferred_language?: string;
     location_lat?: number;
     location_lng?: number;
@@ -105,6 +107,8 @@ export const complaintService = {
       district_id: data.district_id,
       mandal: data.mandal,
       village: data.village,
+      address: data.address,
+      pincode: data.pincode,
       category: classResult.category,
       suggested_priority: classResult.priority,
       confirmed_priority: classResult.priority,

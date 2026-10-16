@@ -200,7 +200,7 @@ export default function RoleDashboard({ role }: { role: Role }) {
                   type="text"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder={t('Search by ID, keyword, or mandal...')}
+                  placeholder={t('Search by ID, keyword, or taluk...')}
                   className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-xs focus:outline-none focus:ring-2 focus:ring-teal-700/20 focus:border-teal-700"
                 />
               </div>
